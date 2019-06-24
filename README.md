@@ -1,2 +1,5 @@
-# pssg-cornet-dynamics-queue-proc-rabbitmq
-RabbitMQ Based Queue Processing Service for reliable API Calls
+*** Hello World ***
+
+``` THIS IS THE QUEUE PROCESS SERVICE ```
+
+'that is all'
