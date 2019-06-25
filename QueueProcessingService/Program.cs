@@ -84,7 +84,15 @@ namespace QueueProcessingService
             channel.QueueBind(subject, "CORDYN", routingKey, null);
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received +=  (ch, ea) => {
-                processMessage(ch, ea);
+                bool result = processMessage(ch, ea);
+                if (result)
+                {
+                    channel.BasicAck(ea.DeliveryTag, false);
+                }
+                else
+                {
+                    channel.BasicReject(ea.DeliveryTag, false);
+                }
             };
 
 
@@ -100,7 +108,7 @@ namespace QueueProcessingService
             
         }
 
-        private void processMessage(object sender, BasicDeliverEventArgs ea)
+        private bool processMessage(object sender, BasicDeliverEventArgs ea)
         {
             byte[] body = ea.Body;
 
@@ -212,8 +220,6 @@ namespace QueueProcessingService
                 if (RMQMessage.errorCount <= maxErrorRetry)
                 {
                     Console.WriteLine("    EventId: {0} has failed at {1}. Error#: {2}. HttpStatusCode: {3}", RMQMessage.eventId, failureLocation, RMQMessage.errorCount, failureStatusCode);
-                    //Re-queue
-                    queueClient.QueueDynamicsNotfication(RMQMessage);
                 }
                 else
                 {
@@ -224,6 +230,7 @@ namespace QueueProcessingService
 
             data.Dispose();
             responseData.Dispose();
+            return !failure;
         }
         //private void banner()
         //{
