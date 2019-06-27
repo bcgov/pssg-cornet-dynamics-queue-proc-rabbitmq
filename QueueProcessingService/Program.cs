@@ -1,12 +1,6 @@
 ﻿using System;
 using System.Threading;
-using Newtonsoft.Json;
-using System.Net.Http;
-using Newtonsoft.Json.Linq;
 using QueueProcessingService.Util;
-using Objects;
-using QueueProcessingService.Client;
-using System.Net;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using QueueProcessingService.Service;
@@ -16,25 +10,15 @@ namespace QueueProcessingService
     public class QueueProcess
     {
         int count = 0;
-        // bool shutdown = false;
-
         // Environment Variable Configuration
         string host = ConfigurationManager.FetchConfig("QUEUE_HOST");
         string port = ConfigurationManager.FetchConfig("QUEUE_PORT");
-        string selfId = ConfigurationManager.FetchConfig("HOSTNAME"); // In Openshift the HOSTNAME property is service-podID
         string vhost = ConfigurationManager.FetchConfig("QUEUE_VHOST");
         string subject = ConfigurationManager.FetchConfig("QUEUE_SUBJECT");
         string routingKey = ConfigurationManager.FetchConfig("ROUTING_KEY");
-        bool sync = (ConfigurationManager.FetchConfig("SYNCHRONOUS") == "TRUE");
-        bool verbose = (ConfigurationManager.FetchConfig("VERBOSE") == "TRUE");
         bool durable = (ConfigurationManager.FetchConfig("DURABLE") == "TRUE");
         string username = ConfigurationManager.FetchConfig("QUEUE_USERNAME");
         string password = ConfigurationManager.FetchConfig("QUEUE_PASSWORD");
-        string queue_group = ConfigurationManager.FetchConfig("QUEUE_GROUP");
-        string durableName = ConfigurationManager.FetchConfig("DURABLE_NAME");
-        string clusterName = ConfigurationManager.FetchConfig("CLUSTER_NAME");
-        string clientID = ConfigurationManager.FetchConfig("CLIENT_ID");
-        int maxErrorRetry = int.Parse(ConfigurationManager.FetchConfig("MAX_RETRY").ToString());
 
         public static int reconnect_attempts = 0;
 
@@ -61,8 +45,6 @@ namespace QueueProcessingService
 
         public void Run(string[] args)
         {
-            //banner();
-
             ConnectionFactory factory = new ConnectionFactory();
             // "guest"/"guest" by default, limited to localhost connections
         
@@ -99,12 +81,9 @@ namespace QueueProcessingService
                     channel.BasicReject(ea.DeliveryTag, false);
                 }
             };
-            //
             //string consumerTag = channel.BasicConsume(subject, false, consumer);
             // just wait until we are done.
             ev.WaitOne();
-
-
         }
     }
 

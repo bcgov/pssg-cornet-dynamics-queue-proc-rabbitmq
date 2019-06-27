@@ -121,18 +121,7 @@ namespace QueueProcessingService.Service
             //Hanlde a failure at any point.
             if (failure)
             {
-                Console.WriteLine("    Error Code: {0}", failureStatusCode);
-                RMQMessage.errorCount++;
-                //Have we exceeded the maximum retry?
-                if (RMQMessage.errorCount <= maxErrorRetry)
-                {
-                    Console.WriteLine("    EventId: {0} has failed at {1}. Error#: {2}. HttpStatusCode: {3}", RMQMessage.eventId, failureLocation, RMQMessage.errorCount, failureStatusCode);
-                }
-                else
-                {
-                    //TODO What do we do with a max error count?
-                    Console.WriteLine("    EventId: {0} has failed at the {1}. No more attempts will be made. HttpStatusCode: {2}", RMQMessage.eventId, failureLocation, failureStatusCode);
-                }
+                Console.WriteLine("    EventId: {0} has failed at {1}. HttpStatusCode: {2}", RMQMessage.eventId, failureLocation, failureStatusCode);
             }
 
             data.Dispose();
