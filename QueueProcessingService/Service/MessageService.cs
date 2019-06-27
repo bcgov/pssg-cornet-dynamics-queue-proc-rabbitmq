@@ -14,7 +14,6 @@ namespace QueueProcessingService.Service
     public class MessageService : IDisposable
     {
         string clusterName = ConfigurationManager.FetchConfig("CLUSTER_NAME");
-        int maxErrorRetry = int.Parse(ConfigurationManager.FetchConfig("MAX_RETRY").ToString());
         public bool processMessage(object sender, BasicDeliverEventArgs ea)
         {
             byte[] body = ea.Body;

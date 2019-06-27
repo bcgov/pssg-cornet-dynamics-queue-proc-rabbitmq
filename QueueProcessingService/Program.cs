@@ -16,6 +16,7 @@ namespace QueueProcessingService
         string vhost = ConfigurationManager.FetchConfig("QUEUE_VHOST");
         string subject = ConfigurationManager.FetchConfig("QUEUE_SUBJECT");
         string routingKey = ConfigurationManager.FetchConfig("ROUTING_KEY");
+        string exchange = ConfigurationManager.FetchConfig("EXCHANGE");
         bool durable = (ConfigurationManager.FetchConfig("DURABLE") == "TRUE");
         string username = ConfigurationManager.FetchConfig("QUEUE_USERNAME");
         string password = ConfigurationManager.FetchConfig("QUEUE_PASSWORD");
@@ -61,9 +62,9 @@ namespace QueueProcessingService
             AutoResetEvent ev = new AutoResetEvent(false);
             IModel channel = c.CreateModel();     
            
-            channel.ExchangeDeclare("CORDYN", ExchangeType.Direct, durable);
+            channel.ExchangeDeclare(exchange, ExchangeType.Direct, durable);
             channel.QueueDeclare(subject, durable, false, false, null);
-            channel.QueueBind(subject, "CORDYN", routingKey, null);
+            channel.QueueBind(subject, exchange, routingKey, null);
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received +=  (ch, ea) => {
                 bool result = false;
@@ -81,7 +82,7 @@ namespace QueueProcessingService
                     channel.BasicReject(ea.DeliveryTag, false);
                 }
             };
-            //string consumerTag = channel.BasicConsume(subject, false, consumer);
+            channel.BasicConsume(subject, false, consumer);
             // just wait until we are done.
             ev.WaitOne();
         }
