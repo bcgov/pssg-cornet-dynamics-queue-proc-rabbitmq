@@ -23,11 +23,6 @@ namespace QueueProcessingService.Client
         }
         public HttpResponseMessage QueueDynamicsNotfication(RabbitMQMessageObj natsMessage)
         {
-            //Setup NATS Options
-           // StanConnectionFactory stanConnectionFactory = new StanConnectionFactory();
-           // StanOptions stanOptions = StanOptions.GetDefaultOptions();
-           // stanOptions.NatsURL = String.Format("nats://{0}", ConfigurationManager.FetchConfig("QUEUE_URL"));
-           // Console.WriteLine("Using URL " + stanOptions.NatsURL);
             //Connect and publish to the queue
             int i = 0;
             while (i < retriesMax)
