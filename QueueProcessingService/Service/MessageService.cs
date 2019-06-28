@@ -8,6 +8,7 @@ using RabbitMQ.Client.Events;
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 
 namespace QueueProcessingService.Service
 {
@@ -122,7 +123,6 @@ namespace QueueProcessingService.Service
             {
                 Console.WriteLine("    EventId: {0} has failed at {1}. HttpStatusCode: {2}", RMQMessage.eventId, failureLocation, failureStatusCode);
             }
-
             data.Dispose();
             responseData.Dispose();
             return !failure;

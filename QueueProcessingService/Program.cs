@@ -4,6 +4,8 @@ using QueueProcessingService.Util;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using QueueProcessingService.Service;
+using Newtonsoft.Json;
+using Objects;
 
 namespace QueueProcessingService
 {
@@ -73,9 +75,15 @@ namespace QueueProcessingService
                     result = messageService.processMessage(ch, ea);
                 }
                 //Ack or not based on the result from processing the message.   
+                byte[] body = ea.Body;
                 if (result)
                 {
                     channel.BasicAck(ea.DeliveryTag, false);
+                }
+                else if (JsonConvert.DeserializeObject<RabbitMQMessageObj>(System.Text.Encoding.UTF8.GetString(body, 0, body.Length)).errorCount <= 5)
+                {
+                    //channel.BasicReject(ea.DeliveryTag, false);
+                    channel.BasicNack(ea.DeliveryTag, false, true);
                 }
                 else
                 {
