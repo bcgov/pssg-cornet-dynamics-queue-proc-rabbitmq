@@ -6,6 +6,7 @@ using RabbitMQ.Client.Events;
 using QueueProcessingService.Service;
 using Newtonsoft.Json;
 using Objects;
+using System.Collections.Generic;
 
 namespace QueueProcessingService
 {
@@ -22,6 +23,8 @@ namespace QueueProcessingService
         bool durable = (ConfigurationManager.FetchConfig("DURABLE") == "TRUE");
         string username = ConfigurationManager.FetchConfig("QUEUE_USERNAME");
         string password = ConfigurationManager.FetchConfig("QUEUE_PASSWORD");
+        string retryQueue = ConfigurationManager.FetchConfig("RETRY_QUEUE");
+        string retryExchange = ConfigurationManager.FetchConfig("RETRY_EXCHANGE");
 
         public static int reconnect_attempts = 0;
 
@@ -65,8 +68,26 @@ namespace QueueProcessingService
             IModel channel = c.CreateModel();     
            
             channel.ExchangeDeclare(exchange, ExchangeType.Direct, durable);
-            channel.QueueDeclare(subject, durable, false, false, null);
+            channel.QueueDeclare(subject, durable, false, false, new Dictionary<string, object>
+                    {
+                        {"x-dead-letter-exchange", retryExchange},
+                        {"x-dead-letter-routing-key", retryQueue}
+                    });
             channel.QueueBind(subject, exchange, routingKey, null);
+
+            channel.ExchangeDeclare(retryExchange, ExchangeType.Direct);
+            channel.QueueDeclare
+            (
+                "retry.queue", true, false, false,
+                new Dictionary<string, object>
+                {
+                        {"x-dead-letter-exchange", exchange},
+                        {"x-dead-letter-routing-key", subject},
+                        {"x-message-ttl", 30000},
+                }
+            );
+            channel.QueueBind(retryQueue, retryExchange, retryQueue, null);
+
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received +=  (ch, ea) => {
                 bool result = false;
@@ -80,7 +101,7 @@ namespace QueueProcessingService
                 {
                     channel.BasicAck(ea.DeliveryTag, false);
                 }
-                else if (JsonConvert.DeserializeObject<RabbitMQMessageObj>(System.Text.Encoding.UTF8.GetString(body, 0, body.Length)).errorCount <= 5)
+                else if (!ea.Redelivered)
                 {
                     //channel.BasicReject(ea.DeliveryTag, false);
                     channel.BasicNack(ea.DeliveryTag, false, true);
