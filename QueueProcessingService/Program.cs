@@ -4,6 +4,9 @@ using QueueProcessingService.Util;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using QueueProcessingService.Service;
+using Newtonsoft.Json;
+using Objects;
+using System.Collections.Generic;
 
 namespace QueueProcessingService
 {
@@ -20,6 +23,13 @@ namespace QueueProcessingService
         bool durable = (ConfigurationManager.FetchConfig("DURABLE") == "TRUE");
         string username = ConfigurationManager.FetchConfig("QUEUE_USERNAME");
         string password = ConfigurationManager.FetchConfig("QUEUE_PASSWORD");
+        string retryQueue = ConfigurationManager.FetchConfig("RETRY_QUEUE");
+        string retryExchange = ConfigurationManager.FetchConfig("RETRY_EXCHANGE");
+        int retryCount = int.Parse(ConfigurationManager.FetchConfig("RETRY_NUMBER"));
+        //Parking Lot settings
+        string parkingLotQueue = ConfigurationManager.FetchConfig("PARKINGLOT_QUEUE");
+        string parkingLotExchange = ConfigurationManager.FetchConfig("PARKINGLOT_EXCHANGE");
+        string parkingLotRoute = ConfigurationManager.FetchConfig("PARKINGLOT_ROUTE");
 
         public static int reconnect_attempts = 0;
 
@@ -61,10 +71,28 @@ namespace QueueProcessingService
         {
             AutoResetEvent ev = new AutoResetEvent(false);
             IModel channel = c.CreateModel();     
-           
+            //Create main queue
             channel.ExchangeDeclare(exchange, ExchangeType.Direct, durable);
-            channel.QueueDeclare(subject, durable, false, false, null);
+            channel.QueueDeclare(subject, durable, false, false, new Dictionary<string, object>
+                    {
+                        {"x-dead-letter-exchange", retryExchange},
+                        {"x-dead-letter-routing-key", retryQueue}
+                    });
             channel.QueueBind(subject, exchange, routingKey, null);
+            //Create the retry queue
+            channel.ExchangeDeclare(retryExchange, ExchangeType.Direct);
+            channel.QueueDeclare
+            (
+                retryQueue, true, false, false,
+                new Dictionary<string, object>
+                {
+                        {"x-dead-letter-exchange", exchange},
+                        {"x-dead-letter-routing-key", subject},
+                        {"x-message-ttl", 30000},
+                }
+            );
+            channel.QueueBind(retryQueue, retryExchange, retryQueue, null);
+
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received +=  (ch, ea) => {
                 bool result = false;
@@ -73,16 +101,40 @@ namespace QueueProcessingService
                     result = messageService.processMessage(ch, ea);
                 }
                 //Ack or not based on the result from processing the message.   
+                byte[] body = ea.Body;
                 if (result)
                 {
+
                     channel.BasicAck(ea.DeliveryTag, false);
+                }
+                else if (int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) <= retryCount)
+                {
+                    //Inc error count
+                    channel.BasicAck(ea.DeliveryTag, false);
+
+                    var properties = channel.CreateBasicProperties();
+                    properties.Persistent = false;
+                    Dictionary<string, object> dictionary = new Dictionary<string, object>();
+                    dictionary.Add("error-count", (int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) + 1));
+                    properties.Headers = dictionary;
+                    channel.BasicPublish(retryExchange, retryQueue, properties, ea.Body);                 
+                    //
                 }
                 else
                 {
+                    //Failed five times reject the message
                     channel.BasicReject(ea.DeliveryTag, false);
+                    //Add to parking lot queue
+                    channel.BasicPublish(parkingLotExchange, parkingLotRoute, null, ea.Body);  
+                    //TODO Notify somone
+                    //EMAIL?
+                    //Log final error.
+                    Console.WriteLine("Message has failed and has been added to the parking lot.");
+
                 }
             };
             channel.BasicConsume(subject, false, consumer);
+            channel.BasicConsume(retryQueue, false, consumer);
             // just wait until we are done.
             ev.WaitOne();
         }
