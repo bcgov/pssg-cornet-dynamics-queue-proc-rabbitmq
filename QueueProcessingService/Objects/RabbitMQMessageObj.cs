@@ -14,10 +14,12 @@ namespace Objects
         public String responseUrl { get; set; }
         [JsonProperty("event_id")]
         public String eventId { get; set; }
-        [JsonProperty("error_queue")]
-        public String errorQueue { get; set; }
-        [JsonProperty("error_count")]
-        public int errorCount { get; set; }
+        [JsonProperty("guid")]
+        public String guid { get; set; }
+        [JsonProperty("event_type")]
+        public String eventType { get; set; }
+        [JsonProperty("event_dtm")]
+        public String eventDateTime { get; set; }
         [JsonProperty("verb")]
         public String verb { get; set; }
         [JsonProperty("payload")]
