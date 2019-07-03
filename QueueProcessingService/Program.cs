@@ -25,6 +25,10 @@ namespace QueueProcessingService
         string password = ConfigurationManager.FetchConfig("QUEUE_PASSWORD");
         string retryQueue = ConfigurationManager.FetchConfig("RETRY_QUEUE");
         string retryExchange = ConfigurationManager.FetchConfig("RETRY_EXCHANGE");
+        int retryCount = int.Parse(ConfigurationManager.FetchConfig("RETRY_NUMBER"));
+        //Parking Lot settings
+        string parkingLotExchange = ConfigurationManager.FetchConfig("PARKINGLOT_EXCHANGE");
+        string parkingLotRoute = ConfigurationManager.FetchConfig("PARKINGLOT_ROUTE");
 
         public static int reconnect_attempts = 0;
 
@@ -90,6 +94,11 @@ namespace QueueProcessingService
 
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received +=  (ch, ea) => {
+                //Add error count to header
+                if (!ea.BasicProperties.Headers.ContainsKey("error-count"))
+                {
+                    ea.BasicProperties.Headers.Add("error-count", 0);
+                }
                 bool result = false;
                 using (MessageService messageService = new MessageService())
                 {
@@ -99,16 +108,26 @@ namespace QueueProcessingService
                 byte[] body = ea.Body;
                 if (result)
                 {
+
                     channel.BasicAck(ea.DeliveryTag, false);
                 }
-                else if (!ea.Redelivered)
+                else if (int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) <= retryCount)
                 {
-                    //channel.BasicReject(ea.DeliveryTag, false);
+                    //Inc error count
+                    ea.BasicProperties.Headers["error-count"] = int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) + 1;
                     channel.BasicNack(ea.DeliveryTag, false, true);
                 }
                 else
                 {
+                    //Failed five times reject the message
                     channel.BasicReject(ea.DeliveryTag, false);
+                    //Add to parking lot queue
+                    channel.BasicPublish(parkingLotExchange, parkingLotRoute, null, ea.Body);
+                    //TODO Notify somone
+                    //EMAIL?
+                    //Log final error.
+                    Console.WriteLine("Message has failed and has been added to the parking lot.");
+
                 }
             };
             channel.BasicConsume(subject, false, consumer);
