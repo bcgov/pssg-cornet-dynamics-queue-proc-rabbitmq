@@ -27,6 +27,7 @@ namespace QueueProcessingService
         string retryExchange = ConfigurationManager.FetchConfig("RETRY_EXCHANGE");
         int retryCount = int.Parse(ConfigurationManager.FetchConfig("RETRY_NUMBER"));
         //Parking Lot settings
+        string parkingLotQueue = ConfigurationManager.FetchConfig("PARKINGLOT_QUEUE");
         string parkingLotExchange = ConfigurationManager.FetchConfig("PARKINGLOT_EXCHANGE");
         string parkingLotRoute = ConfigurationManager.FetchConfig("PARKINGLOT_ROUTE");
 
@@ -70,7 +71,7 @@ namespace QueueProcessingService
         {
             AutoResetEvent ev = new AutoResetEvent(false);
             IModel channel = c.CreateModel();     
-           
+            //Create main queue
             channel.ExchangeDeclare(exchange, ExchangeType.Direct, durable);
             channel.QueueDeclare(subject, durable, false, false, new Dictionary<string, object>
                     {
@@ -78,11 +79,11 @@ namespace QueueProcessingService
                         {"x-dead-letter-routing-key", retryQueue}
                     });
             channel.QueueBind(subject, exchange, routingKey, null);
-
+            //Create the retry queue
             channel.ExchangeDeclare(retryExchange, ExchangeType.Direct);
             channel.QueueDeclare
             (
-                "retry.queue", true, false, false,
+                retryQueue, true, false, false,
                 new Dictionary<string, object>
                 {
                         {"x-dead-letter-exchange", exchange},
@@ -94,11 +95,6 @@ namespace QueueProcessingService
 
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received +=  (ch, ea) => {
-                //Add error count to header
-                if (!ea.BasicProperties.Headers.ContainsKey("error-count"))
-                {
-                    ea.BasicProperties.Headers.Add("error-count", 0);
-                }
                 bool result = false;
                 using (MessageService messageService = new MessageService())
                 {
@@ -114,15 +110,22 @@ namespace QueueProcessingService
                 else if (int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) <= retryCount)
                 {
                     //Inc error count
-                    ea.BasicProperties.Headers["error-count"] = int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) + 1;
-                    channel.BasicNack(ea.DeliveryTag, false, true);
+                    channel.BasicAck(ea.DeliveryTag, false);
+
+                    var properties = channel.CreateBasicProperties();
+                    properties.Persistent = false;
+                    Dictionary<string, object> dictionary = new Dictionary<string, object>();
+                    dictionary.Add("error-count", (int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) + 1));
+                    properties.Headers = dictionary;
+                    channel.BasicPublish(retryExchange, retryQueue, properties, ea.Body);                 
+                    //
                 }
                 else
                 {
                     //Failed five times reject the message
                     channel.BasicReject(ea.DeliveryTag, false);
                     //Add to parking lot queue
-                    channel.BasicPublish(parkingLotExchange, parkingLotRoute, null, ea.Body);
+                    channel.BasicPublish(parkingLotExchange, parkingLotRoute, null, ea.Body);  
                     //TODO Notify somone
                     //EMAIL?
                     //Log final error.
@@ -131,6 +134,7 @@ namespace QueueProcessingService
                 }
             };
             channel.BasicConsume(subject, false, consumer);
+            channel.BasicConsume(retryQueue, false, consumer);
             // just wait until we are done.
             ev.WaitOne();
         }
