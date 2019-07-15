@@ -107,7 +107,7 @@ namespace QueueProcessingService
 
                     channel.BasicAck(ea.DeliveryTag, false);
                 }
-                else if (int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) <= retryCount)
+                else if (int.Parse(ea.BasicProperties.Headers["x-death"].ToString()) <= retryCount)
                 {
                     //Inc error count
                     channel.BasicAck(ea.DeliveryTag, false);
@@ -115,7 +115,8 @@ namespace QueueProcessingService
                     var properties = channel.CreateBasicProperties();
                     properties.Persistent = false;
                     Dictionary<string, object> dictionary = new Dictionary<string, object>();
-                    dictionary.Add("error-count", (int.Parse(ea.BasicProperties.Headers["error-count"].ToString()) + 1));
+                    dictionary.Add("x-death", (int.Parse(ea.BasicProperties.Headers["x-death"].ToString()) + 1));
+                    dictionary.Add("x-request-id", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["x-request-id"]));
                     properties.Headers = dictionary;
                     channel.BasicPublish(retryExchange, retryQueue, properties, ea.Body);                 
                     //
@@ -125,8 +126,14 @@ namespace QueueProcessingService
                     //Failed five times reject the message
                     channel.BasicReject(ea.DeliveryTag, false);
                     //Add to parking lot queue
-                    channel.BasicPublish(parkingLotExchange, parkingLotRoute, null, ea.Body);  
-                    //TODO Notify somone
+                    var properties = channel.CreateBasicProperties();
+                    properties.Persistent = false;
+                    Dictionary<string, object> dictionary = new Dictionary<string, object>();
+                    dictionary.Add("x-death", 0);
+                    dictionary.Add("x-request-id", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["x-request-id"]));
+                    properties.Headers = dictionary;
+                    channel.BasicPublish(parkingLotExchange, parkingLotRoute, properties, ea.Body);  
+                    //TODO: Notify somone
                     //EMAIL?
                     //Log final error.
                     Console.WriteLine("Message has failed and has been added to the parking lot.");
