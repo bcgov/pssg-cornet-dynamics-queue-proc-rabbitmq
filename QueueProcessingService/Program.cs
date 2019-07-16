@@ -4,8 +4,6 @@ using QueueProcessingService.Util;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using QueueProcessingService.Service;
-using Newtonsoft.Json;
-using Objects;
 using System.Collections.Generic;
 
 namespace QueueProcessingService
@@ -117,6 +115,7 @@ namespace QueueProcessingService
                     Dictionary<string, object> dictionary = new Dictionary<string, object>();
                     dictionary.Add("x-death", (int.Parse(ea.BasicProperties.Headers["x-death"].ToString()) + 1));
                     dictionary.Add("x-request-id", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["x-request-id"]));
+                    dictionary.Add("date", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["date"]));
                     properties.Headers = dictionary;
                     channel.BasicPublish(retryExchange, retryQueue, properties, ea.Body);                 
                     //
@@ -131,6 +130,7 @@ namespace QueueProcessingService
                     Dictionary<string, object> dictionary = new Dictionary<string, object>();
                     dictionary.Add("x-death", 0);
                     dictionary.Add("x-request-id", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["x-request-id"]));
+                    dictionary.Add("date", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["date"]));
                     properties.Headers = dictionary;
                     channel.BasicPublish(parkingLotExchange, parkingLotRoute, properties, ea.Body);  
                     //TODO: Notify somone
