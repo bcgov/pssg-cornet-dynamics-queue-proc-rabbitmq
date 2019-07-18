@@ -6,3 +6,4 @@ QueueProcessingService/obj/
 bin
 obj
 >>>>>>> f80a48a6c531da046abac9329f08ae8dca58fee0
+/QueueProcessingService/appsettings.local.json

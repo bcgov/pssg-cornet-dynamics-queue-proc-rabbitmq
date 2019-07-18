@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Objects;
-using QueueProcessingService.Client;
 using QueueProcessingService.Util;
 using RabbitMQ.Client.Events;
 using System;
@@ -26,8 +25,6 @@ namespace QueueProcessingService.Service
             HttpResponseMessage responseData = new HttpResponseMessage();
             String dynamicsRespStr;
             DynamicsResponse MsgResponse;
-            QueueClient queueClient = new QueueClient(clusterName, ConfigurationManager.FetchConfig("RE_QUEUE_CLIENT_ID"));
-
 
             string MsgVerb = RMQMessage.verb;
             string MsgUrl = RMQMessage.requestUrl;
