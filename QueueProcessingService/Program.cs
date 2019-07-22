@@ -133,8 +133,6 @@ namespace QueueProcessingService
                     dictionary.Add("date", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["date"]));
                     properties.Headers = dictionary;
                     channel.BasicPublish(parkingLotExchange, parkingLotRoute, properties, ea.Body);  
-                    //TODO: Notify somone
-                    //EMAIL?
                     //Log final error.
                     Console.WriteLine("Message has failed and has been added to the parking lot.");
 
