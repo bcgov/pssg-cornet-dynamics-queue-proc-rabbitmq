@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Objects;
-using QueueProcessingService.Client;
 using QueueProcessingService.Util;
 using RabbitMQ.Client.Events;
 using System;
@@ -26,8 +25,6 @@ namespace QueueProcessingService.Service
             HttpResponseMessage responseData = new HttpResponseMessage();
             String dynamicsRespStr;
             DynamicsResponse MsgResponse;
-            QueueClient queueClient = new QueueClient(clusterName, ConfigurationManager.FetchConfig("RE_QUEUE_CLIENT_ID"));
-
 
             string MsgVerb = RMQMessage.verb;
             string MsgUrl = RMQMessage.requestUrl;
@@ -40,10 +37,16 @@ namespace QueueProcessingService.Service
             switch (MsgVerb)
             {
                 case "POST":
-                    data = DataClient.PostAsync(MsgUrl, payload).Result;
+                    data = DataClient.PostAsync(MsgUrl, payload, false).Result;
                     break;
                 case "GET":
-                    data = DataClient.GetAsync(MsgUrl).Result;
+                    data = DataClient.GetAsync(MsgUrl, false).Result;
+                    break;
+                case "POSTAUTH":
+                    data = DataClient.PostAsync(MsgUrl, payload, true).Result;
+                    break;
+                case "GETAUTH":
+                    data = DataClient.GetAsync(MsgUrl, true).Result;
                     break;
                 case "PUT":
                     data = DataClient.PutAsync(MsgUrl, payload).Result;
@@ -62,7 +65,7 @@ namespace QueueProcessingService.Service
             //Handle adapter response
             if (data.IsSuccessStatusCode)
             {
-                if (MsgVerb == "GET")
+                if (MsgVerb == "GETAUTH" || MsgVerb == "GET")
                 {
                     String msgResStr = data.Content.ReadAsStringAsync().Result;
                     // Only return the results if response URL was set, some requests require no response
@@ -71,11 +74,11 @@ namespace QueueProcessingService.Service
                         Console.WriteLine("    Response Data: {0}", msgResStr);
                         Console.WriteLine("    Sending Response data to: {0}", MsgResponseUrl);
 
-                        responseData = DataClient.PostAsync(MsgResponseUrl, JsonConvert.DeserializeObject<JRaw>(msgResStr)).Result;
+                        responseData = DataClient.PostAsync(MsgResponseUrl, JsonConvert.DeserializeObject<JRaw>(msgResStr), false).Result;
                         if (responseData.IsSuccessStatusCode)
                         {
                             dynamicsRespStr = responseData.Content.ReadAsStringAsync().Result;
-                            Console.WriteLine("    Adpater Response: {0}", dynamicsRespStr);
+                            Console.WriteLine("    Adapter Response: {0}", dynamicsRespStr);
 
                             MsgResponse = JsonConvert.DeserializeObject<DynamicsResponse>(dynamicsRespStr);
                             Console.WriteLine("    Dynamics Status Code: {0}", MsgResponse.httpStatusCode);
@@ -104,7 +107,7 @@ namespace QueueProcessingService.Service
                         Console.WriteLine("    No Response URL Set, work is complete ");
                     }
                 }
-                else if (MsgVerb == "POST")
+                else if (MsgVerb == "POSTAUTH" || MsgVerb == "POST")
                 {
                     Console.WriteLine("    Data has been posted succesfully to Cornet.");
                     Console.WriteLine(JsonConvert.SerializeObject(payload));
