@@ -1,4 +1,5 @@
 ﻿
+using cornet_dynamics_adapter.Util;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Objects;
@@ -19,8 +20,8 @@ namespace QueueProcessingService.Service
 
             RabbitMQMessageObj RMQMessage = JsonConvert.DeserializeObject<RabbitMQMessageObj>(System.Text.Encoding.UTF8.GetString(body, 0, body.Length));
             Console.WriteLine(Environment.NewLine); // Flush the Log a bit
-            Console.WriteLine("{0}: Received Event: {1}", DateTime.Now, RMQMessage.eventId);
-            Console.WriteLine("{0}: Message: {1}", DateTime.Now, JsonConvert.SerializeObject(RMQMessage));
+            Console.WriteLine("{0}: Received Event: {1}", CorDynUtilities.GetCurrentDateForTimeZone(ConfigurationManager.FetchConfig("DefaultTimeZone")), RMQMessage.eventId);
+            Console.WriteLine("{0}: Message: {1}", CorDynUtilities.GetCurrentDateForTimeZone(ConfigurationManager.FetchConfig("DefaultTimeZone")), JsonConvert.SerializeObject(RMQMessage));
             HttpResponseMessage data = new HttpResponseMessage();
             HttpResponseMessage responseData = new HttpResponseMessage();
             String dynamicsRespStr;
