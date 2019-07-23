@@ -55,7 +55,6 @@ namespace QueueProcessingService
         public void Run(string[] args)
         {
             ConnectionFactory factory = new ConnectionFactory();
-            // "guest"/"guest" by default, limited to localhost connections
         
             factory.Uri = new System.Uri($"amqp://{username}:{password}@{host}:{port}/{vhost}");
          
@@ -102,7 +101,6 @@ namespace QueueProcessingService
                 byte[] body = ea.Body;
                 if (result)
                 {
-
                     channel.BasicAck(ea.DeliveryTag, false);
                 }
                 else if (int.Parse(ea.BasicProperties.Headers["x-death"].ToString()) <= retryCount)
