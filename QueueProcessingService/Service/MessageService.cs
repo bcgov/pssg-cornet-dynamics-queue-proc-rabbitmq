@@ -1,9 +1,8 @@
 ﻿
-using cornet_dynamics_adapter.Util;
+using QueueProcessingService.Util;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Objects;
-using QueueProcessingService.Util;
 using RabbitMQ.Client.Events;
 using System;
 using System.Net;
@@ -19,12 +18,11 @@ namespace QueueProcessingService.Service
 
             RabbitMQMessageObj RMQMessage = JsonConvert.DeserializeObject<RabbitMQMessageObj>(System.Text.Encoding.UTF8.GetString(body, 0, body.Length));
             Console.WriteLine(Environment.NewLine); // Flush the Log a bit
-            Console.WriteLine("{0}: Received Event: {1}", CorDynUtilities.GetCurrentDateForTimeZone(ConfigurationManager.FetchConfig("DefaultTimeZone")), RMQMessage.eventId);
-            Console.WriteLine("{0}: Message: {1}", CorDynUtilities.GetCurrentDateForTimeZone(ConfigurationManager.FetchConfig("DefaultTimeZone")), JsonConvert.SerializeObject(RMQMessage));
+            Console.WriteLine("{0}: Received Event: {1}", QueueProcessorUtilities.GetCurrentDateForTimeZone(ConfigurationManager.FetchConfig("DefaultTimeZone")), RMQMessage.eventId);
+            Console.WriteLine("{0}: Message: {1}", QueueProcessorUtilities.GetCurrentDateForTimeZone(ConfigurationManager.FetchConfig("DefaultTimeZone")), JsonConvert.SerializeObject(RMQMessage));
             HttpResponseMessage data;
             HttpResponseMessage responseData = new HttpResponseMessage();
-            String dynamicsRespStr;
-            DynamicsResponse MsgResponse;
+            String requestRespStr;
 
             string MsgVerb = RMQMessage.verb;
             string MsgUrl = RMQMessage.requestUrl;
@@ -71,20 +69,20 @@ namespace QueueProcessingService.Service
                     // Only return the results if response URL was set, some requests require no response
                     if (!string.IsNullOrEmpty(MsgResponseUrl))
                     {
-                        Console.WriteLine("    Response Data: {0}", msgResStr);
+                        Console.WriteLine("    Initial Response Data: {0}", msgResStr);
                         Console.WriteLine("    Sending Response data to: {0}", MsgResponseUrl);
 
                         responseData = DataClient.PostAsync(MsgResponseUrl, JsonConvert.DeserializeObject<JRaw>(msgResStr), false).Result;
                         if (responseData.IsSuccessStatusCode)
                         {
-                            dynamicsRespStr = responseData.Content.ReadAsStringAsync().Result;
-                            Console.WriteLine("    Adapter Response: {0}", dynamicsRespStr);
+                            requestRespStr = responseData.Content.ReadAsStringAsync().Result;
+                            Console.WriteLine("    Message Response: {0}", requestRespStr);
                             Console.WriteLine("    Status Code: {0}", responseData.StatusCode);
                         }
                         else
                         {
                             failure = true;
-                            failureLocation = "Adapter";
+                            failureLocation = "Message Response Request";
                             failureStatusCode = responseData.StatusCode;
                         }
                     }
@@ -103,7 +101,7 @@ namespace QueueProcessingService.Service
             else
             {
                 failure = true;
-                failureLocation = "Cornet";
+                failureLocation = "Initial Request";
                 failureStatusCode = data.StatusCode;
             }
 
@@ -114,7 +112,7 @@ namespace QueueProcessingService.Service
             }
             data.Dispose();
             responseData.Dispose();
-            return !failure;
+            return failure;
         }
         public void Dispose()
         {

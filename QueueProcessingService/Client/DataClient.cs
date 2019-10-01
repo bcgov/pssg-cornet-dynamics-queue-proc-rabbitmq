@@ -46,7 +46,6 @@ namespace QueueProcessingService
                 using (HttpClient httpClient = new HttpClient())
                 {
                     httpClient.Timeout = new TimeSpan(0, timeout, 0);
-                    String jsonRequest = JsonConvert.SerializeObject(data);
                     HttpResponseMessage content = httpClient.PutAsJsonAsync(endpoint, data).Result;
                     return await Task.Run(() => content);
                 }

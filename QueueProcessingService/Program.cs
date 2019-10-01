@@ -10,26 +10,25 @@ namespace QueueProcessingService
 {
     public class QueueProcess
     {
-        int count = 0;
         // Environment Variable Configuration
-        string host = ConfigurationManager.FetchConfig("QUEUE_HOST");
-        string port = ConfigurationManager.FetchConfig("QUEUE_PORT");
-        string vhost = ConfigurationManager.FetchConfig("QUEUE_VHOST");
-        string subject = ConfigurationManager.FetchConfig("QUEUE_SUBJECT");
-        string routingKey = ConfigurationManager.FetchConfig("ROUTING_KEY");
-        string exchange = ConfigurationManager.FetchConfig("EXCHANGE");
-        bool durable = (ConfigurationManager.FetchConfig("DURABLE") == "TRUE");
-        string username = ConfigurationManager.FetchConfig("QUEUE_USERNAME");
-        string password = ConfigurationManager.FetchConfig("QUEUE_PASSWORD");
-        string retryQueue = ConfigurationManager.FetchConfig("RETRY_QUEUE");
-        string retryExchange = ConfigurationManager.FetchConfig("RETRY_EXCHANGE");
-        int retryCount = int.Parse(ConfigurationManager.FetchConfig("RETRY_NUMBER"));
+        private readonly string host = ConfigurationManager.FetchConfig("QUEUE_HOST");
+        private readonly string port = ConfigurationManager.FetchConfig("QUEUE_PORT");
+        private readonly string vhost = ConfigurationManager.FetchConfig("QUEUE_VHOST");
+        private readonly string subject = ConfigurationManager.FetchConfig("QUEUE_SUBJECT");
+        private readonly string routingKey = ConfigurationManager.FetchConfig("ROUTING_KEY");
+        private readonly string exchange = ConfigurationManager.FetchConfig("EXCHANGE");
+        private readonly bool durable = (ConfigurationManager.FetchConfig("DURABLE") == "TRUE");
+        private readonly string username = ConfigurationManager.FetchConfig("QUEUE_USERNAME");
+        private readonly string password = ConfigurationManager.FetchConfig("QUEUE_PASSWORD");
+        private readonly string retryQueue = ConfigurationManager.FetchConfig("RETRY_QUEUE");
+        private readonly string retryExchange = ConfigurationManager.FetchConfig("RETRY_EXCHANGE");
+        private readonly int retryCount = int.Parse(ConfigurationManager.FetchConfig("RETRY_NUMBER"));
         //Parking Lot settings
-        string parkingLotQueue = ConfigurationManager.FetchConfig("PARKINGLOT_QUEUE");
-        string parkingLotExchange = ConfigurationManager.FetchConfig("PARKINGLOT_EXCHANGE");
-        string parkingLotRoute = ConfigurationManager.FetchConfig("PARKINGLOT_ROUTE");
+        private readonly string parkingLotQueue = ConfigurationManager.FetchConfig("PARKINGLOT_QUEUE");
+        private readonly string parkingLotExchange = ConfigurationManager.FetchConfig("PARKINGLOT_EXCHANGE");
+        private readonly string parkingLotRoute = ConfigurationManager.FetchConfig("PARKINGLOT_ROUTE");
 
-        public static int reconnect_attempts = 0;
+        private static int reconnect_attempts = 0;
 
         public static void Main(string[] args)
         {
@@ -55,11 +54,11 @@ namespace QueueProcessingService
         public void Run(string[] args)
         {
             ConnectionFactory factory = new ConnectionFactory();
-        
+
             factory.Uri = new System.Uri($"amqp://{username}:{password}@{host}:{port}/{vhost}");
-         
-            using (IConnection c = factory.CreateConnection()) 
-            {              
+
+            using (IConnection c = factory.CreateConnection())
+            {
                 receiveAsyncSubscriber(c);
             }
         }
@@ -67,7 +66,7 @@ namespace QueueProcessingService
         private void receiveAsyncSubscriber(IConnection c)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            IModel channel = c.CreateModel();     
+            IModel channel = c.CreateModel();
             //Create main queue
             channel.ExchangeDeclare(exchange, ExchangeType.Direct, durable);
             channel.QueueDeclare(subject, durable, false, false, new Dictionary<string, object>
@@ -91,15 +90,16 @@ namespace QueueProcessingService
             channel.QueueBind(retryQueue, retryExchange, retryQueue, null);
 
             var consumer = new EventingBasicConsumer(channel);
-            consumer.Received +=  (ch, ea) => {
-                bool result = false;
+            consumer.Received += (ch, ea) =>
+            {
+                bool result;
                 using (MessageService messageService = new MessageService())
                 {
                     result = messageService.processMessage(ch, ea);
                 }
                 //Ack or not based on the result from processing the message.   
                 byte[] body = ea.Body;
-                if (result)
+                if (!result)
                 {
                     channel.BasicAck(ea.DeliveryTag, false);
                 }
@@ -115,7 +115,7 @@ namespace QueueProcessingService
                     dictionary.Add("x-request-id", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["x-request-id"]));
                     dictionary.Add("date", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["date"]));
                     properties.Headers = dictionary;
-                    channel.BasicPublish(retryExchange, retryQueue, properties, ea.Body);                 
+                    channel.BasicPublish(retryExchange, retryQueue, properties, ea.Body);
                     //
                 }
                 else
@@ -130,7 +130,7 @@ namespace QueueProcessingService
                     dictionary.Add("x-request-id", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["x-request-id"]));
                     dictionary.Add("date", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["date"]));
                     properties.Headers = dictionary;
-                    channel.BasicPublish(parkingLotExchange, parkingLotRoute, properties, ea.Body);  
+                    channel.BasicPublish(parkingLotExchange, parkingLotRoute, properties, ea.Body);
                     //Log final error.
                     Console.WriteLine("Message has failed and has been added to the parking lot.");
 
