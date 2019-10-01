@@ -21,7 +21,7 @@ namespace QueueProcessingService.Util
         {
             return System.TimeZoneInfo.ConvertTimeFromUtc(
                 DateTime.UtcNow,
-                TimeZoneInfo.FindSystemTimeZoneById(timeZoneId)).ToString();
+                TimeZoneInfo.FindSystemTimeZoneById(timeZoneId)).ToString("yyyy-MM-dd HH:mm:ss.fff");
         }
     }
 }

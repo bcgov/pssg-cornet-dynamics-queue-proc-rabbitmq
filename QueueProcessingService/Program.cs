@@ -132,7 +132,7 @@ namespace QueueProcessingService
                     properties.Headers = dictionary;
                     channel.BasicPublish(parkingLotExchange, parkingLotRoute, properties, ea.Body);
                     //Log final error.
-                    Console.WriteLine("Message has failed and has been added to the parking lot.");
+                    QueueProcessorLog.LogInfomration("Message has failed and has been added to the parking lot.");
 
                 }
             };
