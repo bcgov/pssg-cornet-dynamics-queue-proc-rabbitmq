@@ -24,27 +24,6 @@ namespace cornet_dynamics_adapter.Util
             return new StringContent(jsonRequest, Encoding.UTF8, "application/json");
         }
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="httpStatusCode">
-        /// Result returned to us by dynamics
-        /// </param>
-        /// <param name="dynamicsObject">
-        /// Json given to dynamics
-        /// </param>
-        /// <param name="dynamicsResponseMsg">
-        /// Results from dynamics
-        /// </param>
-        /// <returns></returns>
-        public static DynamicsResponse PopulateDynamicsResponse(HttpStatusCode httpStatusCode, object dynamicsObject, String dynamicsResponseMsg)
-        {
-            DynamicsResponse dynamicsResponse = new DynamicsResponse();
-            dynamicsResponse.httpStatusCode = httpStatusCode;
-            dynamicsResponse.dynamicsPayload = new JRaw(JsonConvert.SerializeObject(dynamicsObject));
-            dynamicsResponse.dynamicsResponse = dynamicsResponseMsg;
-            return dynamicsResponse;
-        }
-        /// <summary>
         /// Based on configured timezone get current datetime as string
         /// </summary>
         /// <returns>

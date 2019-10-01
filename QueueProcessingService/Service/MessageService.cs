@@ -13,7 +13,6 @@ namespace QueueProcessingService.Service
 {
     public class MessageService : IDisposable
     {
-        string clusterName = ConfigurationManager.FetchConfig("CLUSTER_NAME");
         public bool processMessage(object sender, BasicDeliverEventArgs ea)
         {
             byte[] body = ea.Body;
@@ -22,7 +21,7 @@ namespace QueueProcessingService.Service
             Console.WriteLine(Environment.NewLine); // Flush the Log a bit
             Console.WriteLine("{0}: Received Event: {1}", CorDynUtilities.GetCurrentDateForTimeZone(ConfigurationManager.FetchConfig("DefaultTimeZone")), RMQMessage.eventId);
             Console.WriteLine("{0}: Message: {1}", CorDynUtilities.GetCurrentDateForTimeZone(ConfigurationManager.FetchConfig("DefaultTimeZone")), JsonConvert.SerializeObject(RMQMessage));
-            HttpResponseMessage data = new HttpResponseMessage();
+            HttpResponseMessage data;
             HttpResponseMessage responseData = new HttpResponseMessage();
             String dynamicsRespStr;
             DynamicsResponse MsgResponse;
@@ -80,20 +79,7 @@ namespace QueueProcessingService.Service
                         {
                             dynamicsRespStr = responseData.Content.ReadAsStringAsync().Result;
                             Console.WriteLine("    Adapter Response: {0}", dynamicsRespStr);
-
-                            MsgResponse = JsonConvert.DeserializeObject<DynamicsResponse>(dynamicsRespStr);
-                            Console.WriteLine("    Dynamics Status Code: {0}", MsgResponse.httpStatusCode);
-                            //Handle successful dynamics response
-                            if ((int)MsgResponse.httpStatusCode >= 200 && (int)MsgResponse.httpStatusCode <= 299)
-                            {
-                                Console.WriteLine("    EventId: {0} has succeeded. {1} Dynamics Response: {2}", RMQMessage.eventId, Environment.NewLine, dynamicsRespStr);
-                            }
-                            else
-                            {
-                                failure = true;
-                                failureLocation = "Dynamics";
-                                failureStatusCode = MsgResponse.httpStatusCode;
-                            }
+                            Console.WriteLine("    Status Code: {0}", responseData.StatusCode);
                         }
                         else
                         {
