@@ -12,7 +12,7 @@ namespace QueueProcessingService
 {
     static class DataClient
     {
-        private static int timeout = int.Parse(ConfigurationManager.FetchConfig("Request_Timeout").ToString());
+        private static readonly int timeout = int.Parse(ConfigurationManager.FetchConfig("Request_Timeout").ToString());
         private static readonly String username = ConfigurationManager.FetchConfig("API_Username").ToString();
         private static readonly String password = ConfigurationManager.FetchConfig("API_Password").ToString();
 

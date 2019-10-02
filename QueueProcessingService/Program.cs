@@ -53,17 +53,18 @@ namespace QueueProcessingService
 
         public void Run(string[] args)
         {
-            ConnectionFactory factory = new ConnectionFactory();
+            ConnectionFactory factory = new ConnectionFactory {
+                Uri = new System.Uri($"amqp://{username}:{password}@{host}:{port}/{vhost}")
+            };
 
-            factory.Uri = new System.Uri($"amqp://{username}:{password}@{host}:{port}/{vhost}");
 
             using (IConnection c = factory.CreateConnection())
             {
-                receiveAsyncSubscriber(c);
+                ReceiveAsyncSubscriber(c);
             }
         }
 
-        private void receiveAsyncSubscriber(IConnection c)
+        private void ReceiveAsyncSubscriber(IConnection c)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
             IModel channel = c.CreateModel();
@@ -98,7 +99,6 @@ namespace QueueProcessingService
                     result = messageService.processMessage(ch, ea);
                 }
                 //Ack or not based on the result from processing the message.   
-                byte[] body = ea.Body;
                 if (!result)
                 {
                     channel.BasicAck(ea.DeliveryTag, false);
