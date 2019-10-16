@@ -59,7 +59,7 @@ namespace QueueProcessingService
 
         }
 
-        public static async Task<HttpResponseMessage> DeleteAsync(String endpoint, JRaw data)
+        public static async Task<HttpResponseMessage> DeleteAsync(String endpoint)
         {
             try
             {

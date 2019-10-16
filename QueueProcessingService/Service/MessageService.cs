@@ -49,7 +49,7 @@ namespace QueueProcessingService.Service
                     data = DataClient.PutAsync(MsgUrl, payload).Result;
                     break;
                 case "DELETE":
-                    data = DataClient.DeleteAsync(MsgUrl, payload).Result;
+                    data = DataClient.DeleteAsync(MsgUrl).Result;
                     break;
                 default:
                     throw new Exception("Invalid VERB, message not processed");
