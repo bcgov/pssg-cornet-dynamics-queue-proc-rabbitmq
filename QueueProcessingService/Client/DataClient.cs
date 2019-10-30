@@ -12,7 +12,7 @@ namespace QueueProcessingService
 {
     static class DataClient
     {
-        private static int timeout = int.Parse(ConfigurationManager.FetchConfig("Request_Timeout").ToString());
+        private static readonly int timeout = int.Parse(ConfigurationManager.FetchConfig("Request_Timeout").ToString());
         private static readonly String username = ConfigurationManager.FetchConfig("API_Username").ToString();
         private static readonly String password = ConfigurationManager.FetchConfig("API_Password").ToString();
 
@@ -46,7 +46,6 @@ namespace QueueProcessingService
                 using (HttpClient httpClient = new HttpClient())
                 {
                     httpClient.Timeout = new TimeSpan(0, timeout, 0);
-                    String jsonRequest = JsonConvert.SerializeObject(data);
                     HttpResponseMessage content = httpClient.PutAsJsonAsync(endpoint, data).Result;
                     return await Task.Run(() => content);
                 }
@@ -60,7 +59,7 @@ namespace QueueProcessingService
 
         }
 
-        public static async Task<HttpResponseMessage> DeleteAsync(String endpoint, JRaw data)
+        public static async Task<HttpResponseMessage> DeleteAsync(String endpoint)
         {
             try
             {
