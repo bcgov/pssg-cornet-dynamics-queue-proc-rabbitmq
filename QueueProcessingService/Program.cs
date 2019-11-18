@@ -93,12 +93,7 @@ namespace QueueProcessingService
             channel.ExchangeDeclare(parkingLotExchange, ExchangeType.Direct, true);
             channel.QueueDeclare
             (
-                parkingLotQueue, true, false, false,
-                new Dictionary<string, object>
-                {
-                        {"x-dead-letter-exchange", parkingLotExchange},
-                        {"x-dead-letter-routing-key", parkingLotRoute}
-                }
+                parkingLotQueue, true, false, false
             );
             channel.QueueBind(parkingLotQueue, parkingLotExchange, parkingLotRoute, null);
 
