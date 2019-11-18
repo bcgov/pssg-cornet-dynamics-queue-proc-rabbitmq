@@ -89,6 +89,18 @@ namespace QueueProcessingService
                 }
             );
             channel.QueueBind(retryQueue, retryExchange, retryQueue, null);
+            //Create Parking Lot
+            channel.ExchangeDeclare(parkingLotExchange, ExchangeType.Direct, true);
+            channel.QueueDeclare
+            (
+                parkingLotQueue, true, false, false,
+                new Dictionary<string, object>
+                {
+                        {"x-dead-letter-exchange", parkingLotExchange},
+                        {"x-dead-letter-routing-key", parkingLotRoute}
+                }
+            );
+            channel.QueueBind(parkingLotQueue, parkingLotExchange, parkingLotRoute, null);
 
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received += (ch, ea) =>
