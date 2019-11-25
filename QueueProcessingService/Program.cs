@@ -54,6 +54,8 @@ namespace QueueProcessingService
         public void Run(string[] args)
         {
             ConnectionFactory factory = new ConnectionFactory {
+                AutomaticRecoveryEnabled = true,
+                RequestedHeartbeat = 60,
                 Uri = new System.Uri($"amqp://{username}:{password}@{host}:{port}/{vhost}")
             };
 
