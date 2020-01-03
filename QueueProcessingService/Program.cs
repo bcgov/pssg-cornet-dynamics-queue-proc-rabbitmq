@@ -119,7 +119,8 @@ namespace QueueProcessingService
                     channel.BasicAck(ea.DeliveryTag, false);
 
                     var properties = channel.CreateBasicProperties();
-                    properties.Persistent = false;
+                    properties.Persistent = true;
+                    properties.DeliveryMode = 2;
                     Dictionary<string, object> dictionary = new Dictionary<string, object>();
                     dictionary.Add("x-death", (int.Parse(ea.BasicProperties.Headers["x-death"].ToString()) + 1));
                     dictionary.Add("x-request-id", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["x-request-id"]));
@@ -134,7 +135,8 @@ namespace QueueProcessingService
                     channel.BasicReject(ea.DeliveryTag, false);
                     //Add to parking lot queue
                     var properties = channel.CreateBasicProperties();
-                    properties.Persistent = false;
+                    properties.Persistent = true;
+                    properties.DeliveryMode = 2;
                     Dictionary<string, object> dictionary = new Dictionary<string, object>();
                     dictionary.Add("x-death", 0);
                     dictionary.Add("x-request-id", System.Text.Encoding.UTF8.GetString((byte[])ea.BasicProperties.Headers["x-request-id"]));
