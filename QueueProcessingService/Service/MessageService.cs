@@ -17,11 +17,9 @@ namespace QueueProcessingService.Service
             byte[] body = ea.Body;
 
             RabbitMQMessageObj RMQMessage = JsonConvert.DeserializeObject<RabbitMQMessageObj>(System.Text.Encoding.UTF8.GetString(body, 0, body.Length));
-            QueueProcessorLog.LogInfomration(String.Format("Received Event: {0}", RMQMessage.eventId));
-            QueueProcessorLog.LogInfomration(String.Format("Message: {0}", JsonConvert.SerializeObject(RMQMessage)));
+            QueueProcessorLog.LogInfomration(String.Format("Received Event: {0} for guid: {1}", RMQMessage.eventId, RMQMessage.guid));
             HttpResponseMessage data;
             HttpResponseMessage responseData = new HttpResponseMessage();
-            String requestRespStr;
 
             string MsgVerb = RMQMessage.verb;
             string MsgUrl = RMQMessage.requestUrl;
@@ -55,7 +53,7 @@ namespace QueueProcessingService.Service
                     throw new Exception("Invalid VERB, message not processed");
             }
 
-            QueueProcessorLog.LogInfomration(String.Format("Recieved Status Code: {0}", data.StatusCode));
+            QueueProcessorLog.LogInfomration(String.Format("Recieved Status Code: {0} for guid: {1}", data.StatusCode, RMQMessage.guid));
             bool failure = false;
             String failureLocation = "";
             HttpStatusCode failureStatusCode = data.StatusCode;
@@ -68,15 +66,12 @@ namespace QueueProcessingService.Service
                     // Only return the results if response URL was set, some requests require no response
                     if (!string.IsNullOrEmpty(MsgResponseUrl))
                     {
-                        QueueProcessorLog.LogInfomration(String.Format("Initial Response Data: {0}", msgResStr));
-                        QueueProcessorLog.LogInfomration(String.Format("Sending Response data to: {0}", MsgResponseUrl));
+                        QueueProcessorLog.LogInfomration(String.Format("Sending Response data to: {0} fro guid: {1}", MsgResponseUrl, RMQMessage.guid));
 
                         responseData = DataClient.PostAsync(MsgResponseUrl, JsonConvert.DeserializeObject<JRaw>(msgResStr), false).Result;
                         if (responseData.IsSuccessStatusCode)
                         {
-                            requestRespStr = responseData.Content.ReadAsStringAsync().Result;
-                            QueueProcessorLog.LogInfomration(String.Format("Message Response: {0}", requestRespStr));
-                            QueueProcessorLog.LogInfomration(String.Format("Status Code: {0}", responseData.StatusCode));
+                            QueueProcessorLog.LogInfomration(String.Format("Status Code: {0} guid: {1}", responseData.StatusCode, RMQMessage.guid));
                         }
                         else
                         {
@@ -87,14 +82,12 @@ namespace QueueProcessingService.Service
                     }
                     else
                     {
-                        QueueProcessorLog.LogInfomration(String.Format("Response Data: {0}", msgResStr));
                         QueueProcessorLog.LogInfomration("No Response URL Set, work is complete ");
                     }
                 }
                 else if (MsgVerb == "POSTAUTH" || MsgVerb == "POST")
                 {
                     QueueProcessorLog.LogInfomration("Data has been posted succesfully to Cornet.");
-                    QueueProcessorLog.LogInfomration(JsonConvert.SerializeObject(payload));
                 }
             }
             else
@@ -107,7 +100,7 @@ namespace QueueProcessingService.Service
             //Hanlde a failure at any point.
             if (failure)
             {
-                QueueProcessorLog.LogInfomration(String.Format("EventId: {0} has failed at {1}. HttpStatusCode: {2}", RMQMessage.eventId, failureLocation, failureStatusCode));
+                QueueProcessorLog.LogInfomration(String.Format("EventId: {0} with guid: {1} has failed at {2}. HttpStatusCode: {3}", RMQMessage.eventId, RMQMessage.guid, failureLocation, failureStatusCode));
             }
             data.Dispose();
             responseData.Dispose();
