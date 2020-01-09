@@ -13,18 +13,17 @@ namespace QueueProcessingService
     static class DataClient
     {
         private static readonly int timeout = int.Parse(ConfigurationManager.FetchConfig("Request_Timeout").ToString());
-        private static readonly String username = ConfigurationManager.FetchConfig("API_Username").ToString();
-        private static readonly String password = ConfigurationManager.FetchConfig("API_Password").ToString();
 
-        public static async Task<HttpResponseMessage> PostAsync(string uri, JRaw data, bool auth)
+        public static async Task<HttpResponseMessage> PostAsync(string uri, JRaw data, bool auth, String username = null, String password = null)
         {
             try
             {
                 using (HttpClient httpClient = new HttpClient())
                 {
                     httpClient.Timeout = new TimeSpan(0, timeout, 0);
-                    if (auth) {
-                        httpClient.DefaultRequestHeaders.Authorization = SetAuthentication();
+                    if (auth)
+                    {
+                        httpClient.DefaultRequestHeaders.Authorization = SetAuthentication(username, password);
                     }
                     HttpResponseMessage content = await httpClient.PostAsJsonAsync(uri, data);
                     return await Task.Run(() => content);
@@ -80,7 +79,7 @@ namespace QueueProcessingService
 
 
 
-        public static async Task<HttpResponseMessage> GetAsync(string uri, bool auth)
+        public static async Task<HttpResponseMessage> GetAsync(string uri, bool auth, String username = null, String password = null)
         {
             try
             {
@@ -88,9 +87,10 @@ namespace QueueProcessingService
                 {
                     httpClient.Timeout = new TimeSpan(0, timeout, 0);
                     if (auth)
-                    {
-                        httpClient.DefaultRequestHeaders.Authorization = SetAuthentication();
+                    { 
+                        httpClient.DefaultRequestHeaders.Authorization = SetAuthentication(username, password);                      
                     }
+
                     HttpResponseMessage content = await httpClient.GetAsync(uri);
                     return await Task.Run(() => content);
                 }
@@ -102,9 +102,9 @@ namespace QueueProcessingService
                 return failureResponse;
             }
         }
-        private static AuthenticationHeaderValue SetAuthentication()
+        private static AuthenticationHeaderValue SetAuthentication(String user, String pass)
         {
-            byte[] authToken = Encoding.ASCII.GetBytes($"{username}:{password}");
+            byte[] authToken = Encoding.ASCII.GetBytes($"{user}:{pass}");
             return new AuthenticationHeaderValue("Basic", Convert.ToBase64String(authToken));
         }
     }
