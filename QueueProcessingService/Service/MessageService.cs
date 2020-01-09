@@ -12,6 +12,8 @@ namespace QueueProcessingService.Service
 {
     public class MessageService : IDisposable
     {
+        private static readonly String username = ConfigurationManager.FetchConfig("API_Username").ToString();
+        private static readonly String password = ConfigurationManager.FetchConfig("API_Password").ToString();
         public bool processMessage(object sender, BasicDeliverEventArgs ea)
         {
             byte[] body = ea.Body;
@@ -38,10 +40,10 @@ namespace QueueProcessingService.Service
                     data = DataClient.GetAsync(MsgUrl, false).Result;
                     break;
                 case "POSTAUTH":
-                    data = DataClient.PostAsync(MsgUrl, payload, true).Result;
+                    data = DataClient.PostAsync(MsgUrl, payload, true, username, password).Result;
                     break;
                 case "GETAUTH":
-                    data = DataClient.GetAsync(MsgUrl, true).Result;
+                    data = DataClient.GetAsync(MsgUrl, true, username, password).Result;
                     break;
                 case "PUT":
                     data = DataClient.PutAsync(MsgUrl, payload).Result;

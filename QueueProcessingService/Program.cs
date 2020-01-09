@@ -5,6 +5,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using QueueProcessingService.Service;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Hosting;
 
 namespace QueueProcessingService
 {
@@ -27,6 +28,7 @@ namespace QueueProcessingService
         private readonly string parkingLotQueue = ConfigurationManager.FetchConfig("PARKINGLOT_QUEUE");
         private readonly string parkingLotExchange = ConfigurationManager.FetchConfig("PARKINGLOT_EXCHANGE");
         private readonly string parkingLotRoute = ConfigurationManager.FetchConfig("PARKINGLOT_ROUTE");
+        private static readonly string healthPort = ConfigurationManager.FetchConfig("HEALTH_PORT");
 
         private static int reconnect_attempts = 0;
 
@@ -36,6 +38,8 @@ namespace QueueProcessingService
         AttemptLabel:
             try
             {
+                Thread thread = new Thread(RunHealth);
+                thread.Start();
                 new QueueProcess().Run(args);
             }
             catch (Exception ex)
@@ -51,8 +55,20 @@ namespace QueueProcessingService
             }
         }
 
+        public static void RunHealth()
+        {
+            var webHost = new WebHostBuilder()
+             .UseKestrel()            
+             .UseStartup<Startup>()
+             .UseUrls(String.Format("http://+:{0}", healthPort))
+             .Build();
+
+            webHost.Run();
+        }
+
         public void Run(string[] args)
         {
+
             ConnectionFactory factory = new ConnectionFactory {
                 AutomaticRecoveryEnabled = true,
                 TopologyRecoveryEnabled = true,
