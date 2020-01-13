@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <AssemblyVersion>0.9.0.0</AssemblyVersion>
     <FileVersion>0.9.0.0</FileVersion>
+    <ProjectGuid>{18823BAF-6DF7-4379-815D-9AAF77EF3124}</ProjectGuid>
     <ApplicationIcon />
     <OutputType>Exe</OutputType>
     <StartupObject />
