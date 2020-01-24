@@ -1,17 +1,25 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace QueueProcessingService.Util
 {
-    public static class QueueProcessorLog
+    public class QueueProcessorLog
     {
-        private readonly static String defaultTimeZone = ConfigurationManager.FetchConfig("DefaultTimeZone");
-        public static void LogInfomration(String msg)
+        private readonly Serilog.Core.Logger _logger;
+        public QueueProcessorLog()
         {
-            Console.WriteLine(Environment.NewLine);
-            Console.WriteLine("{0}: {1}", QueueProcessorUtilities.GetCurrentDateForTimeZone(defaultTimeZone), msg);
+            _logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.Console()
+                .WriteTo.EventCollector(ConfigurationManager.FetchConfig("Serilog:EventCollectorUrl"), ConfigurationManager.FetchConfig("Serilog:Token"))
+                .CreateLogger();
+        }
+        public void LogInfomration(String msg)
+        {
+            _logger.Information(msg);
         }
     }
 }
