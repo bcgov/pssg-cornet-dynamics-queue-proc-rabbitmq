@@ -14,12 +14,13 @@ namespace QueueProcessingService.Service
     {
         private static readonly String username = ConfigurationManager.FetchConfig("API_Username").ToString();
         private static readonly String password = ConfigurationManager.FetchConfig("API_Password").ToString();
+        private readonly QueueProcessorLog _logger = new QueueProcessorLog();
         public bool processMessage(object sender, BasicDeliverEventArgs ea)
         {
             byte[] body = ea.Body;
 
             RabbitMQMessageObj RMQMessage = JsonConvert.DeserializeObject<RabbitMQMessageObj>(System.Text.Encoding.UTF8.GetString(body, 0, body.Length));
-            QueueProcessorLog.LogInfomration(String.Format("Received Event: {0} for guid: {1}", RMQMessage.eventId, RMQMessage.guid));
+            _logger.LogInfomration(String.Format("Received Event: {0} for guid: {1}", RMQMessage.eventId, RMQMessage.guid));
             HttpResponseMessage data;
             HttpResponseMessage responseData = new HttpResponseMessage();
 
@@ -29,7 +30,7 @@ namespace QueueProcessingService.Service
 
             JRaw payload = RMQMessage.payload;
 
-            QueueProcessorLog.LogInfomration(String.Format("{0} FOR: {1}", MsgVerb, MsgUrl));
+            _logger.LogInfomration(String.Format("{0} FOR: {1}", MsgVerb, MsgUrl));
 
             switch (MsgVerb)
             {
@@ -55,7 +56,7 @@ namespace QueueProcessingService.Service
                     throw new Exception("Invalid VERB, message not processed");
             }
 
-            QueueProcessorLog.LogInfomration(String.Format("Recieved Status Code: {0} for guid: {1}", data.StatusCode, RMQMessage.guid));
+            _logger.LogInfomration(String.Format("Recieved Status Code: {0} for guid: {1}", data.StatusCode, RMQMessage.guid));
             bool failure = false;
             String failureLocation = "";
             HttpStatusCode failureStatusCode = data.StatusCode;
@@ -68,12 +69,12 @@ namespace QueueProcessingService.Service
                     // Only return the results if response URL was set, some requests require no response
                     if (!string.IsNullOrEmpty(MsgResponseUrl))
                     {
-                        QueueProcessorLog.LogInfomration(String.Format("Sending Response data to: {0} fro guid: {1}", MsgResponseUrl, RMQMessage.guid));
+                        _logger.LogInfomration(String.Format("Sending Response data to: {0} fro guid: {1}", MsgResponseUrl, RMQMessage.guid));
 
                         responseData = DataClient.PostAsync(MsgResponseUrl, JsonConvert.DeserializeObject<JRaw>(msgResStr), false).Result;
                         if (responseData.IsSuccessStatusCode)
                         {
-                            QueueProcessorLog.LogInfomration(String.Format("Status Code: {0} guid: {1}", responseData.StatusCode, RMQMessage.guid));
+                            _logger.LogInfomration(String.Format("Status Code: {0} guid: {1}", responseData.StatusCode, RMQMessage.guid));
                         }
                         else
                         {
@@ -84,12 +85,12 @@ namespace QueueProcessingService.Service
                     }
                     else
                     {
-                        QueueProcessorLog.LogInfomration("No Response URL Set, work is complete ");
+                        _logger.LogInfomration("No Response URL Set, work is complete ");
                     }
                 }
                 else if (MsgVerb == "POSTAUTH" || MsgVerb == "POST")
                 {
-                    QueueProcessorLog.LogInfomration("Data has been posted succesfully to Cornet.");
+                    _logger.LogInfomration("Data has been posted succesfully to Cornet.");
                 }
             }
             else
@@ -102,7 +103,7 @@ namespace QueueProcessingService.Service
             //Hanlde a failure at any point.
             if (failure)
             {
-                QueueProcessorLog.LogInfomration(String.Format("EventId: {0} with guid: {1} has failed at {2}. HttpStatusCode: {3}", RMQMessage.eventId, RMQMessage.guid, failureLocation, failureStatusCode));
+                _logger.LogInfomration(String.Format("EventId: {0} with guid: {1} has failed at {2}. HttpStatusCode: {3}", RMQMessage.eventId, RMQMessage.guid, failureLocation, failureStatusCode));
             }
             data.Dispose();
             responseData.Dispose();

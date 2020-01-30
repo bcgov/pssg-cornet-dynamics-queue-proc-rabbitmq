@@ -31,6 +31,7 @@ namespace QueueProcessingService
         private static readonly string healthPort = ConfigurationManager.FetchConfig("HEALTH_PORT");
 
         private static int reconnect_attempts = 0;
+        private readonly QueueProcessorLog _logger = new QueueProcessorLog();
 
         public static void Main(string[] args)
         {
@@ -161,7 +162,7 @@ namespace QueueProcessingService
                     properties.Headers = dictionary;
                     channel.BasicPublish(parkingLotExchange, parkingLotRoute, properties, ea.Body);
                     //Log final error.
-                    QueueProcessorLog.LogInfomration("Message has failed and has been added to the parking lot.");
+                    _logger.LogInfomration("Message has failed and has been added to the parking lot.");
 
                 }
             };
