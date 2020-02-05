@@ -14,7 +14,11 @@ namespace QueueProcessingService.Util
             _logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .WriteTo.Console()
-                .WriteTo.EventCollector(ConfigurationManager.FetchConfig("Serilog:EventCollectorUrl"), ConfigurationManager.FetchConfig("Serilog:Token"))
+                .WriteTo.EventCollector(
+                    splunkHost: ConfigurationManager.FetchConfig("Serilog:EventCollectorUrl"),
+                    sourceType: "manual",
+                    eventCollectorToken: ConfigurationManager.FetchConfig("Serilog:Token")
+                    )
                 .CreateLogger();
         }
         public void LogInfomration(String msg)
